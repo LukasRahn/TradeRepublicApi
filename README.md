@@ -29,6 +29,7 @@ trapi login                                # phone number and PIN, then confirm 
 trapi portfolio                            # positions with current prices, and cash
 trapi export [FOLDER]                      # events.json, transactions.csv and all PDFs
 trapi sell DE000BD6BNQ7 555 --limit 0.05   # limit sell, shows the order and asks first
+trapi sell DE000BD6BNQ7 555 --stop 0.03    # stop loss: sells at market once the price falls to 0.03
 trapi request instrument id=US0378331005   # any request, answer as JSON
 ```
 
