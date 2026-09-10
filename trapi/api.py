@@ -345,6 +345,11 @@ class TradeRepublic:
         """Places a market order and returns the answer. Check its "status"."""
         return await self._order(isin, side, size, exchange, "gfd", None, mode="market", sellFractions=sell_fractions)
 
+    async def stop_order(self, isin, side, size, stop, expiry="gfd", expiry_date=None, exchange="LSX"):
+        """Places a stop market order: once the price reaches ``stop`` it is executed at market."""
+        stop = _positive(stop, "stop")
+        return await self._order(isin, side, size, exchange, expiry, expiry_date, mode="stopMarket", stop=stop)
+
     async def cancel_order(self, order_id):
         return await self.request("cancelOrder", orderId=order_id)
 

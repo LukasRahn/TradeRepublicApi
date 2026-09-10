@@ -111,6 +111,16 @@ class ProtocolTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload["parameters"]["expiry"], {"type": "gtd", "value": "2026-12-31"})
         self.assertEqual(len(payload["clientProcessId"]), 36)
 
+    async def test_stop_order_payload(self):
+        tr = TradeRepublic()
+        with mock.patch.object(tr, "request", mock.AsyncMock(return_value={"status": "succeeded"})) as request:
+            await tr.stop_order(
+                "DE000WA4YPP9", "sell", 7, "1.33", expiry="gtd", expiry_date="2026-12-31", exchange="UBS"
+            )
+        parameters = request.call_args.kwargs["parameters"]
+        self.assertEqual((parameters["mode"], parameters["stop"], parameters["size"]), ("stopMarket", 1.33, 7.0))
+        self.assertNotIn("limit", parameters)
+
     async def test_order_validation(self):
         tr = TradeRepublic()
         for args, kwargs in [
@@ -255,6 +265,7 @@ class SellCommandTest(unittest.TestCase):
         tr.request = mock.AsyncMock(return_value={"exchangeIds": ["BVT"]})
         tr.limit_order = mock.AsyncMock(return_value={"status": "succeeded", "orderId": "o1"})
         tr.market_order = mock.AsyncMock(return_value={"status": "succeeded", "orderId": "o2"})
+        tr.stop_order = mock.AsyncMock(return_value={"status": "succeeded", "orderId": "o3"})
         tr.close = mock.AsyncMock()
         return tr
 
@@ -265,6 +276,14 @@ class SellCommandTest(unittest.TestCase):
             "DE000BD6BNQ7", "sell", 555.0, 0.05, expiry="gfd", expiry_date=None, exchange="BVT"
         )
         tr.market_order.assert_not_awaited()
+
+    def test_stop_sell(self):
+        tr = self.client()
+        main(["sell", "DE000WA4YPP9", "7", "--stop", "1.33", "--expiry", "gtd", "--expiry-date", "2026-12-31", "--yes"])
+        tr.stop_order.assert_awaited_once_with(
+            "DE000WA4YPP9", "sell", 7.0, 1.33, expiry="gtd", expiry_date="2026-12-31", exchange="BVT"
+        )
+        tr.limit_order.assert_not_awaited()
 
     def test_nothing_is_sent_without_a_yes(self):
         tr = self.client()

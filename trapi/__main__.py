@@ -31,6 +31,7 @@ def main(argv=None):
     command.add_argument("isin")
     command.add_argument("size", type=float)
     command.add_argument("--limit", type=float, help="limit price, without it the order is a market order")
+    command.add_argument("--stop", type=float, help="stop price: sells at market once the price falls to it")
     command.add_argument("--expiry", default="gfd", choices=["gfd", "gtc", "gtd"], help="limit orders (%(default)s)")
     command.add_argument("--expiry-date", help="YYYY-MM-DD, for --expiry gtd")
     command.add_argument("--exchange", help="default: the instrument's first exchange, e.g. BVT for turbos")
@@ -88,14 +89,25 @@ async def sell(tr, args):
     if not exchange:
         instrument = await tr.request("instrument", id=args.isin)
         exchange = (instrument.get("exchangeIds") or ["LSX"])[0]
-    limited = args.limit is not None
-    kind = f"limit {args.limit:g}, valid {args.expiry_date or args.expiry}" if limited else "market"
+    if args.limit is not None and args.stop is not None:
+        raise ValueError("use either --limit or --stop, not both")
+    validity = args.expiry_date or args.expiry
+    if args.stop is not None:
+        kind = f"stop {args.stop:g}, valid {validity}"
+    elif args.limit is not None:
+        kind = f"limit {args.limit:g}, valid {validity}"
+    else:
+        kind = "market"
     print(f"SELL {args.size:g} x {args.isin} on {exchange}, {kind}")
     if not args.yes:
         reply = await asyncio.to_thread(input, "Send this order? [y/N] ")
         if reply.strip().lower() not in ("y", "yes", "j", "ja"):
             return None
-    if limited:
+    if args.stop is not None:
+        return await tr.stop_order(
+            args.isin, "sell", args.size, args.stop, expiry=args.expiry, expiry_date=args.expiry_date, exchange=exchange
+        )
+    if args.limit is not None:
         return await tr.limit_order(
             args.isin,
             "sell",
