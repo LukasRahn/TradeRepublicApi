@@ -1,0 +1,19 @@
+[project]
+name = "trapi"
+version = "1.0.0"
+description = "Unofficial client for the Trade Republic API"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+dependencies = ["requests>=2.31", "websockets>=14"]
+
+[project.scripts]
+trapi = "trapi.__main__:main"
+
+[tool.ruff]
+line-length = 120
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
